@@ -3,6 +3,7 @@ package com.example.textrecognitionapp;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -22,6 +23,7 @@ import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.text.FirebaseVisionText;
 import com.google.firebase.ml.vision.text.FirebaseVisionTextDetector;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
@@ -31,7 +33,12 @@ private Button captureImageBtn, detectTextBtn ;
 private ImageView imageView ;
 private TextView textView ;
 static final int REQUEST_IMAGE_CAPTURE = 1;
-    private Bitmap imageBitmap;
+private Bitmap imageBitmap;
+private boolean imageCaptured=false;
+private Button galleryBtn;
+private static final int IMAGE_PICK_CODE = 1000;
+private static final int PERMISSION_CODE = 1001;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -43,12 +50,14 @@ static final int REQUEST_IMAGE_CAPTURE = 1;
         detectTextBtn = findViewById(R.id.detect_text_image_btn);
         imageView = findViewById(R.id.image_view);
         textView = findViewById(R.id.text_display);
+        galleryBtn = findViewById(R.id.gallery);
 
         captureImageBtn.setOnClickListener(new View.OnClickListener()
         {
             @Override
             public void onClick(View v)
             {
+                      imageCaptured=true;
                       dispatchTakePictureIntent();
                       textView.setText("");
             }
@@ -58,11 +67,29 @@ static final int REQUEST_IMAGE_CAPTURE = 1;
             @Override
             public void onClick(View v)
             {
-                detectTextFromImage();
+                if(imageCaptured)
+                    detectTextFromImage();
             }
         }));
 
+        galleryBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v)
+            {
+                pickImageFromGallery();
+                imageCaptured = true;
+            }
+        });
+
         }
+
+    private void pickImageFromGallery()
+    {
+      Intent intent = new Intent(Intent.ACTION_PICK);
+      intent.setType("image/*");
+      startActivityForResult(intent, IMAGE_PICK_CODE);
+
+    }
 
     private void dispatchTakePictureIntent()
     {
@@ -82,6 +109,17 @@ static final int REQUEST_IMAGE_CAPTURE = 1;
                 Bundle extras = data.getExtras();
                 imageBitmap = (Bitmap) extras.get("data");
                 imageView.setImageBitmap(imageBitmap);
+            }
+
+            if (resultCode == RESULT_OK && requestCode == IMAGE_PICK_CODE)
+            {
+                Uri imageUri = data.getData();
+                try {
+                     imageBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), imageUri);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                imageView.setImageURI(imageUri);
             }
         }
 
